@@ -366,7 +366,8 @@ const checkTimeRanges = (
 };
 
 export const printIncentivesDistribution = (
-  distributions: IncentivesDistribution
+  distributions: IncentivesDistribution,
+  incentivesDustLevel: number
 ) => {
   const { from, to, incentivesTotal, liquidity, providers } = distributions;
 
@@ -392,7 +393,6 @@ export const printIncentivesDistribution = (
     )} sqrt(USDC * ETH)`
   );
 
-  const incentivesDustLevel = 1e-4;
   let dustIncentives = 0;
 
   console.log(" === Individual provider details ===");
