@@ -1,11 +1,10 @@
+import type { Argv } from "yargs";
 import yargs from "yargs/yargs";
 import { Wallet, providers, ethers } from "ethers";
-import * as dotenv from "dotenv";
-import { Argv } from "yargs";
-import { IExchange__factory } from "./generated/factory/IExchange__factory";
-import { IERC20__factory } from "./generated/factory/IERC20__factory";
-import { LiquidationBotApi__factory } from "./generated/factory/LiquidationBotApi__factory";
-
+import { config } from "@config";
+import { IExchange__factory } from "@generated/factory/IExchange__factory";
+import { IERC20__factory } from "@generated/factory/IERC20__factory";
+import { liquidationBot, liquidationBotReporting } from "@liquidationBot/index";
 import * as uniswap from "./uniswap";
 
 export function checkDefined<T>(
@@ -79,12 +78,6 @@ const getExchangeMutatingCommandParams = (argv: any) => {
 
 const main = async () => {
   await yargs(process.argv.slice(2))
-    .option("networkId", {
-      alias: "n",
-      describe: "network where this will be run",
-      type: "string",
-      default: "arbitrum_rinkeby",
-    })
     .command(
       ["changePosition"],
       "change position",
@@ -118,7 +111,6 @@ const main = async () => {
         const { accountNumber, networkId, exchangeAddress } =
           getExchangeMutatingCommandParams(argv);
 
-        dotenv.config();
         const wallet = loadAccount(networkId, accountNumber);
         const exchange = IExchange__factory.connect(exchangeAddress, wallet);
 
@@ -169,7 +161,6 @@ const main = async () => {
         const { accountNumber, networkId, exchangeAddress } =
           getExchangeMutatingCommandParams(argv);
 
-        dotenv.config();
         const wallet = loadAccount(networkId, accountNumber);
         const exchange = IExchange__factory.connect(exchangeAddress, wallet);
 
@@ -202,7 +193,6 @@ const main = async () => {
         const { accountNumber, networkId, exchangeAddress } =
           getExchangeMutatingCommandParams(argv);
 
-        dotenv.config();
         const wallet = loadAccount(networkId, accountNumber);
         const exchange = IExchange__factory.connect(exchangeAddress, wallet);
 
@@ -246,7 +236,6 @@ const main = async () => {
         const { accountNumber, networkId, exchangeAddress } =
           getExchangeMutatingCommandParams(argv);
 
-        dotenv.config();
         const wallet = loadAccount(networkId, accountNumber);
 
         const exchange = IExchange__factory.connect(exchangeAddress, wallet);
@@ -273,7 +262,6 @@ const main = async () => {
         const { accountNumber, networkId, exchangeAddress } =
           getExchangeMutatingCommandParams(argv);
 
-        dotenv.config();
         const wallet = loadAccount(networkId, accountNumber);
 
         const exchange = IExchange__factory.connect(exchangeAddress, wallet);
@@ -287,57 +275,15 @@ const main = async () => {
         }
       }
     )
-    .command(
-      ["liquidationBot"],
-      "run a bot to liquidate traders",
-      async (yargs: Argv) => yargs,
-      async (argv: any) => {
-        const { accountNumber, networkId, exchangeAddress } =
-          getExchangeMutatingCommandParams(argv);
-
-        dotenv.config();
-        const wallet = loadAccount(networkId, accountNumber);
-        const exchange = IExchange__factory.connect(exchangeAddress, wallet);
-        const liquidationBotApi = getLiquidationBotApi(networkId, wallet);
-
-        const SLICE_SIZE = 1000;
-
-        while (true) {
-          const tradesToLiquidate = [];
-          const trades = await downloadOpenTrades(exchange.address);
-
-          for (let i = 0; i < trades.length; i += SLICE_SIZE) {
-            const end = Math.min(i + SLICE_SIZE, trades.length);
-
-            const results = await liquidationBotApi.callStatic.isLiquidatable(
-              exchangeAddress,
-              trades.slice(i, end).map((t) => t.trader)
-            );
-
-            for (let j = 0; j < results.length; j++) {
-              if (results[j]) {
-                tradesToLiquidate.push({ trader: trades[i + j].trader });
-              }
-            }
-
-            console.log({ tradesToLiquidate });
-
-            for (const trade of tradesToLiquidate) {
-              try {
-                const tx = await exchange.liquidate(trade.trader);
-                const receipt = await tx.wait();
-                console.log("Liquidated in tx: " + receipt.transactionHash);
-              } catch (e) {
-                console.log({ e });
-                console.log("Failed to liquidate: " + trade.trader);
-              }
-            }
-
-            await sleep(20000);
-          }
-        }
-      }
-    )
+    .command(["liquidationBot"], "run a bot to liquidate traders", async () => {
+      await Promise.race([
+        liquidationBot.start(),
+        config.reporting == "pm2"
+          ? liquidationBotReporting.pm2.start(liquidationBot)
+          : liquidationBotReporting.console.start(liquidationBot),
+        // new Promise((r) => setTimeout(r, 5_000)).then(liquidationBot.stop),
+      ]);
+    })
     .command("uniswap", "Interaction with Uniswap", (yargs) => {
       return yargs
         .command(
@@ -354,7 +300,6 @@ const main = async () => {
           async (argv) => {
             const { networkId, priceStore } = argv;
 
-            dotenv.config();
             // TODO For some reason, the compiler does not understand that `argv` here must also
             // have a `networkId` property.  Even though it works in the commands above.  And it
             // works with exactly the same code in a different project.  It would be nice to figure
@@ -387,7 +332,6 @@ const main = async () => {
           async (argv) => {
             const { networkId, fromBlock, toBlock } = argv;
 
-            dotenv.config();
             // TODO See comment in the command above as to why `as string` is needed here.
             const provider = getProvider(networkId as string);
             // TODO See comment in the command above as to why `as string` is needed here.
@@ -415,7 +359,6 @@ const main = async () => {
           async (argv) => {
             const { networkId, liquidityBalanceStore } = argv;
 
-            dotenv.config();
             // TODO See comment in the command above as to why `as string` is needed here.
             const provider = getProvider(networkId as string);
             // TODO See comment in the command above as to why `as string` is needed here.
@@ -572,27 +515,6 @@ const main = async () => {
     .wrap(72)
     .parse();
 };
-
-const getLiquidationBotApi = (networkId: string, wallet: Wallet) => {
-  switch (networkId) {
-    case "ARBITRUM_RINKEBY":
-      return LiquidationBotApi__factory.connect(
-        "0x70E7c7F3034D5f2Ff662a5D4f2019E2117b43BD5",
-        wallet
-      );
-    default:
-      // TODO: Add addresses here
-      return LiquidationBotApi__factory.connect("0x", wallet);
-  }
-};
-
-const downloadOpenTrades = async (exchangeAddress: string) => {
-  // TODO: Add query to graph here
-  return [{ trader: "0x0000000000000000000000000000000000000000" }];
-};
-
-export const sleep = async (milliseconds: number) =>
-  new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 main()
   .then(() => process.exit(0))
