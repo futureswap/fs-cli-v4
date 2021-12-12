@@ -4,6 +4,7 @@ module.exports = {
   automock: true,
   clearMocks: true,
   setupFilesAfterEnv: ["jest-extended/all", "dotenv/config"],
+  // the list below must be keep in sync with "paths" in tsconfig.json
   moduleNameMapper: {
     "^@liquidationBot/(.*)$": "<rootDir>/src/liquidationBot/$1",
     "^@generated/(.*)$": "<rootDir>/src/generated/$1",

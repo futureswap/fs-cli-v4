@@ -10,6 +10,7 @@
     "moduleResolution": "node",
     "baseUrl": "./src",
     "types": ["node", "jest", "jest-extended"],
+    // the list below must be keep in sync with `moduleNameMapper` in jest.config.js
     "paths": {
       "@liquidationBot/*": ["liquidationBot/*"],
       "@generated/*": ["generated/*"],
