@@ -3,14 +3,14 @@ import type { LiquidationsResults } from "@liquidationBot/services";
 import { WritableOptions, Duplex, Readable, Writable } from "node:stream";
 import { EventEmitter, once } from "node:events";
 import { setTimeout } from "node:timers/promises";
-import { config as appConfig } from "@config";
+import { config } from "@config";
 import { CheckError, LiquidationError } from "@liquidationBot/errors";
 import {
   exchangeService,
   liquidationBotService,
 } from "@liquidationBot/services";
 
-const processorConfig = appConfig.processors.tradersLiquidator;
+const processorConfig = config.processors.tradersLiquidator;
 
 export type TradersLiquidatorResult =
   | { liquidatableChecksErrors: CheckError[] }
@@ -34,7 +34,7 @@ export function start(): TradersLiquidatorProcessor {
     newLiquidatableTraders.forEach((trader) => liquidatableTraders.add(trader));
 
     if (liquidatableTraders.size) {
-      tradersEvents.emit("gotSome", true);
+      tradersEvents.emit("gotLiquidatableTraders", true);
     }
 
     callback();
@@ -44,7 +44,7 @@ export function start(): TradersLiquidatorProcessor {
   const liquidationsGenerator: LiquidationGenerator = async function* () {
     while (true) {
       if (!liquidatableTraders.size) {
-        await once(tradersEvents, "gotSome");
+        await once(tradersEvents, "gotLiquidatableTraders");
       }
       const { liquidationsResults, liquidationsErrors } =
         await exchangeService.liquidate([...liquidatableTraders]);
@@ -55,9 +55,17 @@ export function start(): TradersLiquidatorProcessor {
       yield { liquidationsResults, liquidationsErrors };
 
       if (liquidationsErrors.length) {
+        // some liquidation errors may cost gas so
+        // a timeout is added in order to reduce the chance of consequent errors
         await setTimeout(processorConfig.retryIntervalSec);
       }
 
+      /*
+       * before trying to liquidate traders again, check which of them are still
+       * liquidatable (e.g. we don't want to try to liquidate a trader that has
+       * already been liquidated by a competitor bot) and remove from the
+       * nonLiquidatableTraders list ones that are not liquidatable anymore
+       */
       const erroredTraders = liquidationsErrors.map(({ trader }) => trader);
       const { nonLiquidatableTraders, liquidatableChecksErrors } =
         await filterNonLiquidatableTraders(erroredTraders);

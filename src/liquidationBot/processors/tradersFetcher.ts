@@ -1,11 +1,11 @@
 import { setTimeout } from "node:timers/promises";
 import { Readable } from "node:stream";
-import { config as appConfig } from "@config";
+import { config } from "@config";
 import type { Trader } from "@liquidationBot/types";
 import { FetchError } from "@liquidationBot/errors";
 import { tradersService } from "@liquidationBot/services";
 
-const processorConfig = appConfig.processors.tradersFetcher;
+const processorConfig = config.processors.tradersFetcher;
 const RE_FETCH_INTERVAL = processorConfig.reFetchIntervalSec * 1_000;
 
 export type TradersFetcherResult = Trader[] | FetchError;

@@ -4,10 +4,10 @@ import type { LiquidatableTradersCheckResult } from "@liquidationBot/services";
 import { Readable, Writable, Duplex } from "node:stream";
 import { EventEmitter, once } from "node:events";
 import { setTimeout } from "node:timers/promises";
-import { config as appConfig } from "@config";
+import { config } from "@config";
 import { liquidationBotService } from "@liquidationBot/services";
 
-const processorConfig = appConfig.processors.tradersChecker;
+const processorConfig = config.processors.tradersChecker;
 const RECHECK_INTERVAL = processorConfig.recheckIntervalSec * 1_000;
 
 export type TradersCheckerProcessor = Duplex & {
@@ -26,7 +26,7 @@ export function start(): TradersCheckerProcessor {
     traders = activeTraders;
 
     if (traders.length) {
-      tradersEvents.emit("gotSome", true);
+      tradersEvents.emit("gotActiveTraders", true);
     }
 
     callback();
@@ -35,7 +35,7 @@ export function start(): TradersCheckerProcessor {
   const liquidatableTradersGenerator = async function* () {
     while (true) {
       if (!traders.length) {
-        await once(tradersEvents, "gotSome");
+        await once(tradersEvents, "gotActiveTraders");
       }
       yield* liquidationBotService.filterLiquidatableTraders(traders);
       await setTimeout(RECHECK_INTERVAL);
