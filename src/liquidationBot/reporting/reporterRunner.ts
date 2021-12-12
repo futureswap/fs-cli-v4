@@ -5,8 +5,8 @@ export async function runReporter(
   reportable: Reportable
 ): Promise<void> {
   try {
-    // potentially reporters may also export async init() function
-    //   Run it here and in catch below, above the reportEvent call
+    // potentially reporters may also export async init() function.
+    // Run it here and in catch below, above the reportEvent call
     for await (const event of reportable.getEventsIterator()) {
       await reporter.reportEvent(event);
     }

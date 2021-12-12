@@ -28,16 +28,17 @@ const mockLiquidate = <jest.MockedFunction<typeof exchangeApi.liquidate>>(
 );
 
 describe("liquidationBot", () => {
-  /* Because bot processors cycles are running on timers, the most natural way
+  /*
+   * Because bot processors cycles are running on timers, the most natural way
    * to write integration tests on it would be to use Jest's fake timers API.
    * But unfortunately it doesn't work properly with Promises.
-   * //https://github.com/facebook/jest/issues/7151
+   * https://github.com/facebook/jest/issues/7151
    * Workaround exists, and I have tried some of them, but the results was from
    * not working at all to working unreliable.
    * Maybe it can be setup better, but I have decided just to set cycles time
    * length to a very low values in .env.test and control bot execution by
    * listening events. And it works great
-   * */
+   */
   type EventTypes = LiquidationBotEvents["type"];
   let botEvents: LiquidationBotEvents[] = [];
 

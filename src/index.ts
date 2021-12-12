@@ -281,7 +281,6 @@ const main = async () => {
         config.reporting == "pm2"
           ? liquidationBotReporting.pm2.start(liquidationBot)
           : liquidationBotReporting.console.start(liquidationBot),
-        // new Promise((r) => setTimeout(r, 5_000)).then(liquidationBot.stop),
       ]);
     })
     .command("uniswap", "Interaction with Uniswap", (yargs) => {
