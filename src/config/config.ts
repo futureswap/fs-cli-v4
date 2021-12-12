@@ -69,7 +69,9 @@ const reporting = getEnumEnv("REPORTING", ["console", "pm2"], {
 export const config: Config = {
   exchangeAddress,
   tradesUrl: TRADES_URL_PREFIX + exchangeAddress,
-  walletPath: WALLET_PREFIX + getStringEnv("ACCOUNT_NUMBER"),
+  walletPath:
+    WALLET_PREFIX +
+    getNumberEnv("ACCOUNT_NUMBER", { isInt: true, isPositive: true }),
   network,
   liquidationBotApi: {
     maxTradersPerLiquidatableCheck: 1_000,

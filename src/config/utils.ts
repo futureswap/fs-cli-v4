@@ -4,10 +4,40 @@ export function getStringEnv(envVarName: string) {
   return process.env[envVarName] as string;
 }
 
-export function getNumberEnv(envVarName: string) {
-  if (process.env[envVarName] == null)
-    throw Error(`Env variable "${envVarName}" is not to be provided`);
-  return Number(process.env[envVarName]) as number;
+export function getNumberEnv<IsOptional>(
+  envVarName: string,
+  opts?: { isInt?: true; isPositive?: true; isOptional?: IsOptional }
+): number | (IsOptional extends true ? undefined : never);
+export function getNumberEnv<IsOptional>(
+  envVarName: string,
+  opts: { isInt?: true; isPositive?: true; isOptional?: IsOptional } = {}
+) {
+  if (process.env[envVarName] == null) {
+    if (opts.isOptional) {
+      return undefined;
+    } else {
+      throw Error(`Env variable "${envVarName}" is not to be provided`);
+    }
+  }
+  const value = Number(process.env[envVarName]) as number;
+
+  if (isNaN(value)) {
+    throw Error(
+      `Env variable "${envVarName}" must be number, while provided is "${value}"`
+    );
+  }
+  if (opts.isInt && value != Math.trunc(value)) {
+    throw Error(
+      `Env variable "${envVarName}" must be integer, while provided is "${value}"`
+    );
+  }
+  if (opts.isPositive && value < 0) {
+    throw Error(
+      `Env variable "${envVarName}" must be positive, while provided is "${value}"`
+    );
+  }
+
+  return value;
 }
 
 export function getEnumEnv<

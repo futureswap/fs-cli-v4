@@ -5,7 +5,7 @@
  * in order to have environment variables initialized right from the start
  * of the process.
  * This allows to have ready for import config with no additional initialization
-*/
+ */
 
 import yargs from "yargs";
 import { getNumberEnv, getStringEnv } from "./utils";
@@ -31,12 +31,25 @@ const argv = yargs(process.argv.slice(2))
   })
   .parseSync();
 
-const accountNumber = argv.accountNumber ?? getNumberEnv("ACCOUNT_NUMBER") ?? 0;
-if (accountNumber < 0 || accountNumber >= 200) {
+const accountNumber =
+  argv.accountNumber ??
+  getNumberEnv("ACCOUNT_NUMBER", {
+    isInt: true,
+    isPositive: true,
+    isOptional: true,
+  }) ??
+  0;
+
+if (
+  accountNumber < 0 ||
+  accountNumber >= 200 ||
+  accountNumber != Math.trunc(accountNumber)
+) {
   throw Error(
-    `Invalid account number ${argv.accountNumber} it must be in range of 0..199`
+    `Invalid account number ${accountNumber} it must be an integer in range of 0..199`
   );
 }
+
 process.env.ACCOUNT_NUMBER = `${accountNumber}`;
 
 if (argv.networkId) {
