@@ -49,7 +49,7 @@ const network =
       };
 
 const reFetchIntervalSec = Number(
-  process.env["LIQUIDATION_BOT_TRADERS_FETCHER_RE_FETCH_INTERVAL_SEC"] ?? 20
+  process.env["LIQUIDATION_BOT_TRADERS_FETCHER_REFETCH_INTERVAL_SEC"] ?? 20
 );
 const recheckIntervalSec = Number(
   process.env["LIQUIDATION_BOT_TRADERS_CHECKER_RECHECK_INTERVAL_SEC"] ?? 5
