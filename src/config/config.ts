@@ -33,8 +33,13 @@ type Config = {
 
 const exchangeAddress = getStringEnv("EXCHANGE_ADDRESS").toLowerCase();
 
+const networkName = getEnumEnv("NETWORK_ID", [
+  "ARBITRUM_RINKEBY",
+  "ARBITRUM",
+]).toUpperCase();
+
 const network =
-  getStringEnv("NETWORK_ID").toUpperCase() == "ARBITRUM_RINKEBY"
+  networkName == "ARBITRUM_RINKEBY"
     ? {
         mnemonic: getStringEnv("ARBITRUM_RINKEBY_MNEMONIC"),
         chainId: getNumberEnv("ARBITRUM_RINKEBY_CHAINID"),
