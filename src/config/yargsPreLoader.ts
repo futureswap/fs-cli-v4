@@ -42,7 +42,7 @@ process.env.ACCOUNT_NUMBER = `${accountNumber}`;
 if (argv.networkId) {
   process.env.NETWORK_ID = argv.networkId;
 } else if (!process.env.NETWORK_ID) {
-  process.env.NETWORK_ID = "arbitrum_rinkeby";
+  throw Error("NetworkId must be provided");
 }
 
 if (argv.exchangeAddress) {
