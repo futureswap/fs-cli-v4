@@ -27,7 +27,7 @@ export function getEnumEnv<
   opts: Opts = { isOptional: false } as Opts
 ) {
   if (process.env[envVarName] == null) {
-    if (opts.isOptional || opts.default !== undefined) {
+    if (opts.isOptional || "default" in opts) {
       return opts.default;
     } else {
       throw Error(`Env variable "${envVarName}" is not provided`);
