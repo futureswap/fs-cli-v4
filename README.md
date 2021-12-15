@@ -134,8 +134,8 @@ close the terminal
 Unfortunately, passing parameters to the commands below like it has been done
 in the command above will not work. The easiest way would be to add `NETWORK_ID`
 and `EXCHANGE_ADDRESS` to your `.env` file like it explained in
-[Additional parameters](#additional-parameters) and [Other flags](#other-flags)
-section above or to add them to `pm2.config.js` file to `env` field e.g. replacing
+[Additional parameters](#additional-parameters) section above or to add them to
+`pm2.config.js` file to `env` field e.g. replacing
 
 ```javascript
 env: {
