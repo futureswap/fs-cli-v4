@@ -4,7 +4,7 @@ import { TraderAction } from "@liquidationBot/types";
 import { LiquidationError } from "@liquidationBot/errors";
 import { exchangeApi, exchangeEventsApi } from "./setupApi";
 import { config } from "@config";
-import { providers } from "ethers";
+import provider from "../provider";
 
 export type LiquidationsResults = { [k in Trader]: ContractTransaction };
 
@@ -18,11 +18,7 @@ type ActiveTradersResults = {
   latestBlock: number;
 };
 
-const { network, liquidationBot } = config;
-const { chainId, rpcUrl } = network;
-
-const providerConfig = { name: "json-rpc", chainId };
-const provider = new providers.JsonRpcProvider(rpcUrl, providerConfig);
+const { liquidationBot } = config;
 
 export const getLastTraderActionsSince = async (
   startBlock: number
@@ -40,17 +36,19 @@ export const getLastTraderActionsSince = async (
 
   const { maxBlocksToProcessPerRound: rangeSize } = liquidationBot;
   const blockRangesToProcess = [];
+  // Process blocks in smaller batches to avoid hitting the provider's limit.
   for (
     let rangeStart = startBlock;
     rangeStart < currentBlockNumber;
     rangeStart += rangeSize
   ) {
-    blockRangesToProcess.push([rangeStart, Math.max(rangeStart + rangeSize)]);
+    blockRangesToProcess.push([
+      rangeStart,
+      Math.max(rangeStart + rangeSize, currentBlockNumber),
+    ]);
   }
 
   const lastTraderActions: LastTraderActions = {};
-  // Divide the number of blocks to load into smaller ranges to avoid hitting the provider's
-  // limit. This is only necessary if there's a lot of blocks to load.
   for (const [startBlock, endBlock] of blockRangesToProcess) {
     const changePositionsEvents = await exchangeEventsApi.queryFilter(
       eventFilter,
@@ -65,14 +63,13 @@ export const getLastTraderActionsSince = async (
       const trader = event.args.trader as Trader;
 
       // Override the previous last action of this trader.
-      if (previousAsset.eq(0) && previousStable.eq(0)) {
+      if (previousAsset.isZero() && previousStable.isZero()) {
         lastTraderActions[trader] = TraderAction.OPEN_POSITION;
-      } else if (newAsset.eq(0) && newStable.eq(0)) {
+      } else if (newAsset.isZero() && newStable.isZero()) {
         lastTraderActions[trader] = TraderAction.CLOSE_POSITION;
       }
     }
   }
-
   return { lastTraderActions, latestBlock: currentBlockNumber };
 };
 

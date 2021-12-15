@@ -1,17 +1,21 @@
 import type { LiquidationBotEvents } from "@liquidationBot/reporting";
 import { LiquidationError } from "@liquidationBot/errors";
-import exchangeApi from "@liquidationBot/services/exchange/setupApi";
 import liquidationBotApi from "@liquidationBot/services/liquidationBot/setupApi";
 import { liquidationBot } from "@liquidationBot/bot";
+import { config } from "@config";
+import { BigNumber } from "ethers";
+
+type ChangePositionEventResult = {
+  args: {
+    trader: string;
+    previousAsset: BigNumber;
+    previousStable: BigNumber;
+    newAsset: BigNumber;
+    newStable: BigNumber;
+  };
+};
 
 jest.disableAutomock();
-
-const mockFetchTraders = jest.fn() as jest.MockedFunction<
-  () => Promise<{ trades: { trader: string }[] }>
->;
-jest.mock("axios", () => ({
-  get: jest.fn(async () => ({ data: await mockFetchTraders() })),
-}));
 
 jest.mock("../../services/liquidationBot/setupApi", () => ({
   callStatic: { isLiquidatable: jest.fn() },
@@ -20,12 +24,21 @@ const mockIsLiquidatable = <
   jest.MockedFunction<typeof liquidationBotApi.callStatic.isLiquidatable>
 >liquidationBotApi.callStatic.isLiquidatable;
 
+const mockChangePositionEvents = jest.fn() as jest.MockedFunction<
+  () => Promise<ChangePositionEventResult[]>
+>;
+const mockLiquidate = jest.fn() as jest.MockedFunction<() => Promise<Symbol>>;
 jest.mock("../../services/exchange/setupApi", () => ({
-  liquidate: jest.fn(),
+  exchangeApi: { liquidate: () => mockLiquidate() },
+  exchangeEventsApi: {
+    queryFilter: () => mockChangePositionEvents(),
+    filters: { PositionChanged: () => null },
+  },
 }));
-const mockLiquidate = <jest.MockedFunction<typeof exchangeApi.liquidate>>(
-  exchangeApi.liquidate
-);
+
+jest.mock("../../services/provider", () => ({
+  getBlockNumber: () => config.network.exchangeGenesisBlock + 1,
+}));
 
 describe("liquidationBot", () => {
   /*
@@ -72,9 +85,9 @@ describe("liquidationBot", () => {
   });
 
   it("should liquidate liquidatable trader", async () => {
-    mockFetchTraders.mockResolvedValue({ trades: [{ trader: "trader1" }] });
+    openPositions(["trader1"]);
     mockIsLiquidatable.mockResolvedValueOnce([true]);
-    const mockLiquidationResult = Symbol("mockLiquidationResult") as any;
+    const mockLiquidationResult = Symbol("mockLiquidationResult");
     mockLiquidate.mockResolvedValueOnce(mockLiquidationResult);
 
     liquidationBot.start();
@@ -84,7 +97,7 @@ describe("liquidationBot", () => {
   });
 
   it("should not liquidate non-liquidatable trader", async () => {
-    mockFetchTraders.mockResolvedValue({ trades: [{ trader: "trader1" }] });
+    openPositions(["trader1"]);
     mockIsLiquidatable.mockResolvedValue([false]);
 
     liquidationBot.start();
@@ -96,11 +109,9 @@ describe("liquidationBot", () => {
   });
 
   it("should liquidate only liquidatable trader", async () => {
-    mockFetchTraders.mockResolvedValue({
-      trades: [{ trader: "trader1" }, { trader: "trader2" }],
-    });
+    openPositions(["trader1", "trader2"]);
     mockIsLiquidatable.mockResolvedValueOnce([false, true]);
-    const mockLiquidationResult = Symbol("mockLiquidationResult") as any;
+    const mockLiquidationResult = Symbol("mockLiquidationResult");
     mockLiquidate.mockResolvedValueOnce(mockLiquidationResult);
 
     liquidationBot.start();
@@ -110,7 +121,7 @@ describe("liquidationBot", () => {
   });
 
   it("should liquidate trader after it would become liquidatable", async () => {
-    mockFetchTraders.mockResolvedValue({ trades: [{ trader: "trader1" }] });
+    openPositions(["trader1"]);
     mockIsLiquidatable.mockResolvedValueOnce([false]);
     mockIsLiquidatable.mockResolvedValueOnce([true]);
 
@@ -126,10 +137,10 @@ describe("liquidationBot", () => {
   });
 
   it("should not liquidate trader after it has been liquidated", async () => {
-    mockFetchTraders.mockResolvedValue({ trades: [{ trader: "trader1" }] });
+    openPositions(["trader1"]);
     mockIsLiquidatable.mockResolvedValueOnce([true]);
     mockIsLiquidatable.mockResolvedValue([false]);
-    const mockLiquidationResult = Symbol("mockLiquidationResult") as any;
+    const mockLiquidationResult = Symbol("mockLiquidationResult");
     mockLiquidate.mockResolvedValueOnce(mockLiquidationResult);
 
     liquidationBot.start();
@@ -147,7 +158,7 @@ describe("liquidationBot", () => {
   });
 
   it("should retry to liquidate when error occurs on liquidation", async () => {
-    mockFetchTraders.mockResolvedValue({ trades: [{ trader: "trader1" }] });
+    openPositions(["trader1"]);
     mockIsLiquidatable.mockResolvedValueOnce([true]); // call in check processor
     mockIsLiquidatable.mockResolvedValueOnce([true]); // call before retry
     mockLiquidate.mockRejectedValueOnce(Error("mock liquidate error"));
@@ -171,7 +182,7 @@ describe("liquidationBot", () => {
   });
 
   it("should not retry to liquidate when after error liquidatable trader becomes non-liquidatable", async () => {
-    mockFetchTraders.mockResolvedValue({ trades: [{ trader: "trader1" }] });
+    openPositions(["trader1"]);
     mockIsLiquidatable.mockResolvedValueOnce([true]); // call in check processor
     mockIsLiquidatable.mockResolvedValue([false]); // call before retry and after
     mockLiquidate.mockRejectedValueOnce(Error("mock liquidate error"));
@@ -187,7 +198,7 @@ describe("liquidationBot", () => {
   });
 
   it.skip("should not retry to liquidate when liquidation failed twice", async () => {
-    mockFetchTraders.mockResolvedValue({ trades: [{ trader: "trader1" }] });
+    openPositions(["trader1"]);
     mockIsLiquidatable.mockResolvedValue([true]);
     mockLiquidate.mockRejectedValueOnce(Error("mock liquidate error 1"));
     mockLiquidate.mockRejectedValueOnce(Error("mock liquidate error 2"));
@@ -205,12 +216,10 @@ describe("liquidationBot", () => {
   });
 
   it("should determine liquidatable traders when number of active traders exceeds the chunk size of liquidation bot api", async () => {
-    const activeTraders = Array.from({ length: 5_000 }, (_, i) => ({
-      trader: `trader${i}`,
-    }));
-    mockFetchTraders.mockResolvedValue({ trades: activeTraders });
+    const activeTraders = Array.from({ length: 5_000 }, (_, i) => `trader${i}`);
+    openPositions(activeTraders);
     mockIsLiquidatable.mockResolvedValue([false, true]);
-    const mockLiquidationResult = Symbol("mockLiquidationResult") as any;
+    const mockLiquidationResult = Symbol("mockLiquidationResult");
     mockLiquidate.mockResolvedValueOnce(mockLiquidationResult);
 
     liquidationBot.start();
@@ -227,3 +236,38 @@ describe("liquidationBot", () => {
     expect(trader5).toEqual("trader4001");
   });
 });
+
+function openPositions(traders: string[]) {
+  addTradeActivity(
+    traders,
+    BigNumber.from(0),
+    BigNumber.from(0),
+    BigNumber.from(100),
+    BigNumber.from(100)
+  );
+}
+
+function closePositions(traders: string[]) {
+  addTradeActivity(
+    traders,
+    BigNumber.from(100),
+    BigNumber.from(100),
+    BigNumber.from(0),
+    BigNumber.from(0)
+  );
+}
+
+function addTradeActivity(
+  traders: string[],
+  previousAsset: BigNumber,
+  previousStable: BigNumber,
+  newAsset: BigNumber,
+  newStable: BigNumber
+) {
+  const activities = traders.map((trader) => {
+    return {
+      args: { previousAsset, previousStable, newAsset, newStable, trader },
+    };
+  });
+  mockChangePositionEvents.mockResolvedValue(activities);
+}
