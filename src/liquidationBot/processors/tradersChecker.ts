@@ -25,6 +25,7 @@ export function start(): TradersCheckerProcessor {
   ) => {
     traders = activeTraders;
 
+    console.log("Active traders: ", traders);
     if (traders.length) {
       tradersEvents.emit("gotActiveTraders", true);
     }

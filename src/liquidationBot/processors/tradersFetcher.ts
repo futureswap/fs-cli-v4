@@ -6,6 +6,7 @@ import { FetchError } from "@liquidationBot/errors";
 import { tradersService } from "@liquidationBot/services";
 
 const processorConfig = config.processors.tradersFetcher;
+const exchangeGenesisBlock = config.network.exchangeGenesisBlock;
 const RE_FETCH_INTERVAL = processorConfig.reFetchIntervalSec * 1_000;
 
 export type TradersFetcherResult = Trader[] | FetchError;
@@ -18,10 +19,20 @@ export function start(): TradersFetcherProcessor {
 }
 
 async function* tradersGenerator(): AsyncGenerator<TradersFetcherResult> {
+  let activeTraders: Trader[] = [];
+  let lastBlockRead = exchangeGenesisBlock;
+
   while (true) {
     try {
-      const traders = await tradersService.getOpen();
-      yield traders;
+      const { updatedActiveTraders, latestBlock } =
+        await tradersService.getUpdatedActiveTraders(
+          activeTraders,
+          lastBlockRead
+        );
+      activeTraders = updatedActiveTraders;
+      lastBlockRead = latestBlock;
+
+      yield activeTraders;
     } catch (error) {
       yield new FetchError(error);
     }

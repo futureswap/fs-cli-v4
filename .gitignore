@@ -3,6 +3,9 @@ node_modules/
 # PM2 will create logs files in this folder
 logs/
 
+# IDEA-specific configs.
+.idea
+
 # Local provider access configuration and any other configuration that
 # should not be shared.
 .env

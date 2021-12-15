@@ -12,8 +12,7 @@ type Filter = (
 
 export const filterLiquidatableTraders: Filter = async function* (traders) {
   const { exchangeAddress } = config;
-  const { maxTradersPerLiquidatableCheck: chunkSize } =
-    config.liquidationBotApi;
+  const { maxTradersPerLiquidatableCheck: chunkSize } = config.liquidationBot;
 
   const chunks = _(traders).chunk(chunkSize).entries().value();
   for (const [chunkNumberStr, chunkOfTraders] of chunks) {

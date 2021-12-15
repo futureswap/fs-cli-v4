@@ -1,20 +1,23 @@
 import { getEnumEnv, getNumberEnv, getStringEnv } from "./utils";
 
 const WALLET_PREFIX = "m/44'/60'/0'/0/";
-const TRADES_URL_PREFIX =
-  "https://xek9m45jkh.execute-api.us-east-1.amazonaws.com/Prod/api/v2/__hidden__trades?exchangeAddress=";
+const FUTURESWAP_EXCHANGE_GENESIS_BLOCKS = {
+  RINKEBY: 5280847,
+  MAINNET: 2194550,
+};
 
 type Config = {
   readonly exchangeAddress: string;
-  readonly tradesUrl: string;
   readonly walletPath: string;
   readonly network: {
     readonly mnemonic: string;
     readonly chainId: number;
     readonly rpcUrl: string;
     readonly address: string;
+    readonly exchangeGenesisBlock: number;
   };
-  readonly liquidationBotApi: {
+  readonly liquidationBot: {
+    readonly maxBlocksToProcessPerRound: number;
     readonly maxTradersPerLiquidatableCheck: number;
   };
   readonly processors: {
@@ -45,12 +48,14 @@ const network =
         chainId: getNumberEnv("ARBITRUM_RINKEBY_CHAINID"),
         rpcUrl: getStringEnv("ARBITRUM_RINKEBY_RPC_URL"),
         address: "0x70E7c7F3034D5f2Ff662a5D4f2019E2117b43BD5",
+        exchangeGenesisBlock: FUTURESWAP_EXCHANGE_GENESIS_BLOCKS.RINKEBY,
       }
     : {
         mnemonic: getStringEnv("ARBITRUM_MNEMONIC"),
         chainId: getNumberEnv("ARBITRUM_CHAINID"),
         rpcUrl: getStringEnv("ARBITRUM_RPC_URL"),
         address: "0xbFAb47F47853a59ce68226D7ac9b58c5b402D5d0",
+        exchangeGenesisBlock: FUTURESWAP_EXCHANGE_GENESIS_BLOCKS.MAINNET,
       };
 
 const reFetchIntervalSec = Number(
@@ -68,12 +73,12 @@ const reporting = getEnumEnv("REPORTING", ["console", "pm2"], {
 
 export const config: Config = {
   exchangeAddress,
-  tradesUrl: TRADES_URL_PREFIX + exchangeAddress,
   walletPath:
     WALLET_PREFIX +
     getNumberEnv("ACCOUNT_NUMBER", { isInt: true, isPositive: true }),
   network,
-  liquidationBotApi: {
+  liquidationBot: {
+    maxBlocksToProcessPerRound: 100_000,
     maxTradersPerLiquidatableCheck: 1_000,
   },
   processors: {
