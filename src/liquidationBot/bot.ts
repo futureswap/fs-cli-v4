@@ -18,9 +18,25 @@ import {
   tradersCheckerProcessor,
   tradersLiquidatorProcessor,
 } from "@liquidationBot/processors";
+import { constructFilterLiquidatableTraders } from "@liquidationBot/services/liquidationBot";
+import { IExchange } from "@generated/IExchange";
+import { LiquidationBotApi } from "@generated/LiquidationBotApi";
+import { IExchangeEvents } from "@generated/IExchangeEvents";
+import { Provider } from "@ethersproject/providers";
 
 export type LiquidationBot = Reportable & {
-  start: () => void;
+  start: (
+    provider: Provider,
+    exchange: IExchange,
+    exchangeEvents: IExchangeEvents,
+    liquidationBotApi: LiquidationBotApi,
+    startBlock: number,
+    maxBlocksPerJsonRpcQuery: number,
+    maxTradersPerLiquidationCheck: number,
+    fetcherRetryIntervalSec: number,
+    checkerRetryIntervalSec: number,
+    liquidatorRetryIntervalSec: number
+  ) => void;
   stop: () => Promise<void>;
 };
 
@@ -63,17 +79,48 @@ export const liquidationBot: LiquidationBot = {
     })(),
 };
 
-function start() {
+function start(
+  provider: Provider,
+  exchange: IExchange,
+  exchangeEvents: IExchangeEvents,
+  liquidationBotApi: LiquidationBotApi,
+  startBlock: number,
+  maxBlocksPerJsonRpcQuery: number,
+  fetcherRetryIntervalSec: number,
+  checkerRetryIntervalSec: number,
+  liquidatorRetryIntervalSec: number,
+  maxTradersPerLiquidationCheck: number
+) {
   if (isRunning) {
     throw Error("Cannot start liquidation bot - it is already running");
   }
   botAbortController = new AbortController();
+
+  const filterLiquidatableTraders = constructFilterLiquidatableTraders(
+    liquidationBotApi,
+    exchange.address,
+    maxTradersPerLiquidationCheck
+  );
+
   return (isRunning = pipeline(
-    tradersFetcherProcessor.start(),
+    tradersFetcherProcessor.start(
+      provider,
+      exchangeEvents,
+      startBlock,
+      maxBlocksPerJsonRpcQuery,
+      fetcherRetryIntervalSec
+    ),
     fetcherToCheckerAdapterAndReporter,
-    tradersCheckerProcessor.start(),
+    tradersCheckerProcessor.start(
+      checkerRetryIntervalSec,
+      filterLiquidatableTraders
+    ),
     checkerToLiquidatorAdapterAndReporter,
-    tradersLiquidatorProcessor.start(),
+    tradersLiquidatorProcessor.start(
+      exchange,
+      filterLiquidatableTraders,
+      liquidatorRetryIntervalSec
+    ),
     liquidatorReporter,
     { signal: botAbortController.signal }
   ).catch((error) => {

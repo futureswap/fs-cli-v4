@@ -1,42 +1,50 @@
 import type { Trader } from "@liquidationBot/types";
-import _ from "lodash";
-import { config } from "@config";
+import { chunk } from "lodash";
 import { CheckError } from "@liquidationBot/errors";
-import botApi from "./setupApi";
+import { LiquidationBotApi } from "@generated/LiquidationBotApi";
 
 export type LiquidatableTradersCheckResult = Trader[] | CheckError;
 
-type Filter = (
+export type ConstructFilter = (
+  liquidationBotApi: LiquidationBotApi,
+  exchangeAddress: string,
+  chunkSize: number
+) => Filter;
+
+export type Filter = (
   traders: Trader[]
 ) => AsyncGenerator<LiquidatableTradersCheckResult>;
 
-export const filterLiquidatableTraders: Filter = async function* (traders) {
-  const { exchangeAddress } = config;
-  const { maxTradersPerLiquidatableCheck: chunkSize } = config.liquidationBot;
+export const constructFilterLiquidatableTraders: ConstructFilter = (
+  liquidationBotApi: LiquidationBotApi,
+  exchangeAddress: string,
+  chunkSize: number
+) =>
+  async function* (traders: Trader[]) {
+    for (const [chunkIndex, chunkOfTraders] of chunk(
+      traders,
+      chunkSize
+    ).entries()) {
+      try {
+        const areLiquidatable =
+          await liquidationBotApi.callStatic.isLiquidatable(
+            exchangeAddress,
+            chunkOfTraders
+          );
 
-  const chunks = _(traders).chunk(chunkSize).entries().value();
-  for (const [chunkNumberStr, chunkOfTraders] of chunks) {
-    const chunkNumber = +chunkNumberStr;
+        const liquidatableTraders = areLiquidatable.flatMap(
+          (isLiquidatable, i) =>
+            isLiquidatable ? traders[chunkIndex * chunkSize + i] : []
+        );
 
-    try {
-      const areLiquidatable = await botApi.callStatic.isLiquidatable(
-        exchangeAddress,
-        chunkOfTraders
-      );
-
-      const liquidatableTraders = areLiquidatable.flatMap((isLiquidatable, i) =>
-        isLiquidatable ? traders[chunkNumber * chunkSize + i] : []
-      );
-
-      yield liquidatableTraders;
-    } catch (error) {
-      yield new CheckError(
-        chunkOfTraders,
-        chunkNumber,
-        chunkSize,
-        traders.length,
-        error
-      );
+        yield liquidatableTraders;
+      } catch (error) {
+        yield new CheckError(
+          chunkOfTraders,
+          chunkIndex * chunkSize,
+          traders.length,
+          error
+        );
+      }
     }
-  }
-};
+  };
