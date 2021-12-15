@@ -148,7 +148,7 @@ describe("liquidationBot", () => {
     start();
     collectBotEvents("traderLiquidated", "error");
     await onceBotEvent("tradersChecked");
-    await onceBotEvent("tradersFetched"); // some long waining
+    await onceBotEvent("tradersFetched");
 
     expect(botEvents).toBeEmpty();
   });
@@ -162,7 +162,7 @@ describe("liquidationBot", () => {
 
     start();
     await onceBotEvent("tradersChecked");
-    await onceBotEvent("tradersFetched"); // some long waining
+    await onceBotEvent("tradersFetched");
 
     closePositions(mockChangePositionEvents, ["trader1"]);
     mockIsLiquidatable.mockResolvedValue([true]);
@@ -283,7 +283,7 @@ describe("liquidationBot", () => {
     start();
     collectBotEvents("traderLiquidated", "error");
     await onceBotEvent("error"); // mock liquidate error
-    await onceBotEvent("tradersChecked"); // some long waining
+    await onceBotEvent("tradersChecked");
 
     expect(botEvents).toEqual([
       { type: "error", error: expect.any(LiquidationError) },
@@ -308,7 +308,7 @@ describe("liquidationBot", () => {
     collectBotEvents("traderLiquidated", "error");
     await onceBotEvent("error"); // mock liquidate error 1
     await onceBotEvent("error"); // mock liquidate error 2
-    await onceBotEvent("tradersChecked"); // some long waining
+    await onceBotEvent("tradersChecked");
 
     expect(botEvents).toEqual([
       { type: "error", error: expect.any(LiquidationError) },

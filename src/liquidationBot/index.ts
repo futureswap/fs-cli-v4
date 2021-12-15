@@ -54,8 +54,8 @@ export const cli = <Parent>(
     })
     .option("start-block", {
       describe:
-        "Arbitrum block to start scanning traders from for liquidation" +
-        `Defaults to: ${FUTURESWAP_EXCHANGE_GENESIS_BLOCKS}`,
+        "Arbitrum block to start scanning traders from for liquidation\n" +
+        `Default depends on the chosen network`,
       type: "number",
     })
     .option("max-blocks-per-json-rpc-query", {

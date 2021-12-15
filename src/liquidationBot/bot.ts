@@ -30,7 +30,7 @@ export type LiquidationBot = Reportable & {
     exchange: IExchange,
     exchangeEvents: IExchangeEvents,
     liquidationBotApi: LiquidationBotApi,
-    startBlock: number,
+    exchangeLaunchBlock: number,
     maxBlocksPerJsonRpcQuery: number,
     maxTradersPerLiquidationCheck: number,
     fetcherRetryIntervalSec: number,
@@ -84,7 +84,7 @@ function start(
   exchange: IExchange,
   exchangeEvents: IExchangeEvents,
   liquidationBotApi: LiquidationBotApi,
-  startBlock: number,
+  exchangeLaunchBlock: number,
   maxBlocksPerJsonRpcQuery: number,
   fetcherRetryIntervalSec: number,
   checkerRetryIntervalSec: number,
@@ -106,7 +106,7 @@ function start(
     tradersFetcherProcessor.start(
       provider,
       exchangeEvents,
-      startBlock,
+      exchangeLaunchBlock,
       maxBlocksPerJsonRpcQuery,
       fetcherRetryIntervalSec
     ),
