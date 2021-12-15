@@ -49,6 +49,8 @@ export const getLastTraderActionsSince = async (
   }
 
   const lastTraderActions: LastTraderActions = {};
+  // Divide the number of blocks to load into smaller ranges to avoid hitting the provider's
+  // limit. This is only necessary if there's a lot of blocks to load.
   for (const [startBlock, endBlock] of blockRangesToProcess) {
     const changePositionsEvents = await exchangeEventsApi.queryFilter(
       eventFilter,
