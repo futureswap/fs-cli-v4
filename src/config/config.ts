@@ -1,6 +1,7 @@
 import { getEnumEnv, getNumberEnv, getStringEnv } from "./utils";
 
 const WALLET_PREFIX = "m/44'/60'/0'/0/";
+// These are the blocks containing the first transactions to the first exchange.
 const FUTURESWAP_EXCHANGE_GENESIS_BLOCKS = {
   RINKEBY: 5280847,
   MAINNET: 2194550,
