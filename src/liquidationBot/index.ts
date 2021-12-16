@@ -17,7 +17,7 @@ import { IExchangeEvents } from "@generated/IExchangeEvents";
 
 type LiquidationBotKeys<T = {}> = T & {
   "liquidation-bot": string | undefined;
-  "start-block": number | undefined;
+  "exchange-launch-block": number | undefined;
   "max-blocks-per-json-rpc-query": number | undefined;
   "refetch-interval": number | undefined;
   "recheck-interval": number | undefined;
@@ -52,10 +52,10 @@ export const cli = <Parent>(
         "Default depends on the chosen network.",
       type: "string",
     })
-    .option("start-block", {
+    .option("exchange-launch-block", {
       describe:
         "Arbitrum block to start scanning traders from for liquidation\n" +
-        `Default depends on the chosen network`,
+        `Default depends on the chosen network, but generally to the first block the exchange was created in.`,
       type: "number",
     })
     .option("max-blocks-per-json-rpc-query", {
@@ -124,7 +124,7 @@ export const run = async (
 
   const {
     liquidationBotApi,
-    startBlock,
+    exchangeLaunchBlock,
     maxBlocksPerJsonRpcQuery,
     fetcherRetryIntervalSec,
     checkerRetryIntervalSec,
@@ -138,7 +138,7 @@ export const run = async (
     exchange,
     exchangeEvents,
     liquidationBotApi,
-    startBlock,
+    exchangeLaunchBlock,
     maxBlocksPerJsonRpcQuery,
     fetcherRetryIntervalSec,
     checkerRetryIntervalSec,
@@ -165,7 +165,7 @@ const getLiquidationBotArgs = <T = {}>(
   argv: Arguments<LiquidationBotArgs<T>>
 ): {
   liquidationBotApi: LiquidationBotApi;
-  startBlock: number;
+  exchangeLaunchBlock: number;
   maxBlocksPerJsonRpcQuery: number;
   fetcherRetryIntervalSec: number;
   checkerRetryIntervalSec: number;
@@ -187,11 +187,16 @@ const getLiquidationBotArgs = <T = {}>(
     provider
   );
 
-  const startBlock = getNumberArg("start-block", "START_BLOCK", argv, {
-    default: FUTURESWAP_EXCHANGE_GENESIS_BLOCKS[network],
-    isInt: true,
-    isPositive: true,
-  });
+  const exchangeLaunchBlock = getNumberArg(
+    "exchange-launch-block",
+    "EXCHANGE_LAUNCH_BLOCK",
+    argv,
+    {
+      default: FUTURESWAP_EXCHANGE_GENESIS_BLOCKS[network],
+      isInt: true,
+      isPositive: true,
+    }
+  );
 
   const maxBlocksPerJsonRpcQuery = getNumberArg(
     "max-blocks-per-json-rpc-query",
@@ -241,7 +246,7 @@ const getLiquidationBotArgs = <T = {}>(
 
   return {
     liquidationBotApi,
-    startBlock,
+    exchangeLaunchBlock,
     maxBlocksPerJsonRpcQuery,
     fetcherRetryIntervalSec,
     checkerRetryIntervalSec,
