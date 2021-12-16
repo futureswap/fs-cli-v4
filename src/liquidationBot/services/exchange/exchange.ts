@@ -65,9 +65,9 @@ export const getLastTraderActionsSince = async (
 
       // Override the previous last action of this trader.
       if (previousAsset.isZero() && previousStable.isZero()) {
-        lastTraderActions[trader] = TraderAction.OPEN_POSITION;
+        lastTraderActions[trader] = TraderAction.OpenPosition;
       } else if (newAsset.isZero() && newStable.isZero()) {
-        lastTraderActions[trader] = TraderAction.CLOSE_POSITION;
+        lastTraderActions[trader] = TraderAction.ClosePosition;
       }
     }
   }

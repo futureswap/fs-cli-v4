@@ -29,6 +29,9 @@ const setupMocks = (
   mockIsLiquidatable: jest.Mock;
   start: () => void;
 } => {
+  // TODO `as any as Type` conversion is not safe.  It would be nice to replace it with a more
+  // comprehensive mock.  One that would through a meaningful error if an unexpected property is
+  // accessed, for example.
   const mockLiquidate = jest.fn() as jest.MockedFunction<() => Promise<Symbol>>;
   const mockExchange = {
     liquidate: mockLiquidate,
@@ -42,9 +45,6 @@ const setupMocks = (
     filters: { PositionChanged: () => null },
   } as any as IExchangeEvents;
 
-  // TODO `as any as Type` conversion is not safe.  It would be nice to replace it with a more
-  // comprehensive mock.  One that would through a meaningful error if an unexpected property is
-  // accessed, for example.
   const mockIsLiquidatable = jest.fn();
   const mockLiquidationBotApi = {
     callStatic: { isLiquidatable: mockIsLiquidatable },

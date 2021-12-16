@@ -26,11 +26,11 @@ export const getUpdatedActiveTraders = async (
 
   // Remove traders who recently closed and add those who recent opened positions.
   const updatedActiveTraders = currActiveTraders.filter(
-    (trader) => lastTraderActions[trader] != TraderAction.CLOSE_POSITION
+    (trader) => lastTraderActions[trader] != TraderAction.ClosePosition
   );
   for (const trader in lastTraderActions) {
     const castTrader = trader as Trader;
-    if (lastTraderActions[trader as Trader] == TraderAction.OPEN_POSITION) {
+    if (lastTraderActions[trader as Trader] == TraderAction.OpenPosition) {
       updatedActiveTraders.push(castTrader);
     }
   }
