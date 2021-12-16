@@ -136,7 +136,7 @@ const exchangeWithProviderArgv = <T = {}>(
   return withSignerArgv(yargs).option("exchange", {
     describe:
       "Address of the exchange to interact with.\n" +
-      ".env property: <network>_EXCHANGE_ADDRESS\n" +
+      ".env property: <network>_EXCHANGE\n" +
       "Required",
     type: "string",
   });

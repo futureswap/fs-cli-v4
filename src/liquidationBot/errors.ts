@@ -3,7 +3,7 @@ import type { Trader } from "@liquidationBot/types";
 export class FetchError extends Error {
   constructor(cause: any) {
     // @ts-ignore - cause is a new feature that would be typed in TS 4.5 https://github.com/microsoft/TypeScript/pull/46291
-    super("Failed to fetch active traders", { cause });
+    super(`Failed to fetch active traders`, { cause });
     this.name = "FetchError";
   }
 }
