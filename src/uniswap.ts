@@ -52,7 +52,7 @@ const CONFIGURATIONS: {
     liquidityStatsStartBlock: 8704879,
   },
 
-  arbitrum_rinkeby: {
+  rinkeby_arbitrum: {
     binanceSymbol: "ETHUSDC",
     exchangeLaunchTime: new Date("2021-10-13T09:00:00-07:00"),
 
@@ -63,7 +63,7 @@ const CONFIGURATIONS: {
     liquidityStatsStartBlock: 5273636,
   },
 
-  arbitrum_mainnet: {
+  mainnet_arbitrum: {
     binanceSymbol: "ETHUSDC",
     exchangeLaunchTime: new Date("2021-10-13T09:00:00-07:00"),
 
@@ -152,7 +152,7 @@ export const cli = (
           default: "uniswapLiquidityBalances.json",
         }),
       async (argv) => {
-        const { networkId, liquidityBalanceStore } = argv;
+        const { liquidityBalanceStore } = argv;
 
         initConfig();
         const { network, provider } = getProvider(argv);

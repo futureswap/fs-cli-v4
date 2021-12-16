@@ -166,6 +166,7 @@ const getLiquidationBotArgs = <T = {}>(
 ): {
   liquidationBotApi: LiquidationBotApi;
   startBlock: number;
+  s;
   maxBlocksPerJsonRpcQuery: number;
   fetcherRetryIntervalSec: number;
   checkerRetryIntervalSec: number;

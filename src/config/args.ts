@@ -55,7 +55,7 @@ export function getStringArg<
   }
 
   throw Error(
-    `You need to provide the "--${cliArgName}" argument in the command line ` +
+    `You need to provide the "--${cliArgName}" command line argument ` +
       `or specify the "${envPropName}" property in the .env file.`
   );
 }
