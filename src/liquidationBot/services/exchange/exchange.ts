@@ -43,9 +43,11 @@ export const getLastTraderActionsSince = async (
   for (
     let rangeStart = startBlock;
     rangeStart < currentBlockNumber;
-    rangeStart += maxBlocksPerJsonRpcQuery
+    rangeStart += maxBlocksPerJsonRpcQuery + 1
   ) {
-    const rangeEnd = Math.max(
+    // Only fetch up to the current block when the last block range is smaller
+    // than max number of blocks we can fetch.
+    const rangeEnd = Math.min(
       rangeStart + maxBlocksPerJsonRpcQuery,
       currentBlockNumber
     );

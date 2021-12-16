@@ -36,7 +36,7 @@ const FUTURESWAP_EXCHANGE_GENESIS_BLOCKS: { [network: string]: number } = {
   MAINNET_ARBITRUM: 2194550,
 };
 
-const DEFAULT_MAX_BLOCKS_PER_JSON_RPC_QUERY = 100_000;
+const DEFAULT_MAX_BLOCKS_PER_JSON_RPC_QUERY = 50_000;
 
 export const cli = <Parent>(
   exchangeWithSignerArgv: <T>(
