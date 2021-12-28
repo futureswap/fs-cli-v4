@@ -28,6 +28,14 @@ const setupMocks = (
   mockLiquidate: jest.MockedFunction<() => Promise<Symbol>>;
   mockIsLiquidatable: jest.Mock;
   start: () => void;
+  consts: {
+    exchangeLaunchBlock: number;
+    maxBlocksPerJsonRpcQuery: number;
+    fetcherRetryIntervalSec: number;
+    checkerRetryIntervalSec: number;
+    liquidatorRetryIntervalSec: number;
+    maxTradersPerLiquidationCheck: number;
+  };
 } => {
   // TODO `as any as Type` conversion is not safe.  It would be nice to replace it with a more
   // comprehensive mock.  One that would through a meaningful error if an unexpected property is
@@ -50,12 +58,21 @@ const setupMocks = (
     callStatic: { isLiquidatable: mockIsLiquidatable },
   } as any as LiquidationBotApi;
 
+  const consts = {
+    exchangeLaunchBlock: 0,
+    maxBlocksPerJsonRpcQuery: 100,
+    fetcherRetryIntervalSec: 0.02,
+    checkerRetryIntervalSec: 0.01,
+    liquidatorRetryIntervalSec: 0.005,
+    maxTradersPerLiquidationCheck: 1000,
+  };
+
   const mockProvider = {
     getBlockNumber: () => 10,
   } as any as Provider;
 
   const start = () => {
-    // NOTE Timeouts here need to be very low, as we need to wait for a timeout to expire when when
+    // NOTE Timeouts here need to be very low, as we need to wait for a timeout to expire when
     // are stopping our tests.  So the shorter the timeouts are, the less time our tests will waste
     // when stopping.
     liquidationBot.start(
@@ -63,16 +80,22 @@ const setupMocks = (
       mockExchange,
       mockExchangeEvents,
       mockLiquidationBotApi,
-      0,
-      100,
-      0.01,
-      0.005,
-      0.001,
-      1000
+      consts.exchangeLaunchBlock,
+      consts.maxBlocksPerJsonRpcQuery,
+      consts.fetcherRetryIntervalSec,
+      consts.checkerRetryIntervalSec,
+      consts.liquidatorRetryIntervalSec,
+      consts.maxTradersPerLiquidationCheck
     );
   };
 
-  return { mockChangePositionEvents, mockLiquidate, mockIsLiquidatable, start };
+  return {
+    mockChangePositionEvents,
+    mockLiquidate,
+    mockIsLiquidatable,
+    start,
+    consts,
+  };
 };
 
 describe("liquidationBot", () => {
@@ -103,15 +126,33 @@ describe("liquidationBot", () => {
     })();
   };
 
-  const onceBotEvent = async <EventType extends EventTypes>(
-    eventType: EventType
-  ): Promise<LiquidationBotEvents & { type: EventType }> => {
+  type EventsByEventsTypes<EventsTypes extends EventTypes[]> =
+    EventsTypes extends [infer EventType, ...infer RestEventsTypes]
+      ? RestEventsTypes extends EventTypes[]
+        ? [
+            LiquidationBotEvents & { type: EventType },
+            ...EventsByEventsTypes<RestEventsTypes>
+          ]
+        : never
+      : [];
+
+  // `| [EventTypes]` is a hint to ensure that
+  // inferred type of EventsTypes would be tuple and not array.
+  // https://github.com/microsoft/TypeScript/issues/27179 - see last comments.
+  // Alternative with multiple `readonly` and `as const` in every call is much uglier.
+  const onceBotEvents = async <EventsTypes extends EventTypes[] | [EventTypes]>(
+    eventsTypes: EventsTypes
+  ): Promise<EventsByEventsTypes<EventsTypes>> => {
+    const collectedEvents = [];
     for await (const event of liquidationBot.getEventsIterator()) {
-      if (event.type === eventType) {
-        return event as any;
+      if (event.type === eventsTypes[collectedEvents.length]) {
+        collectedEvents.push(event);
+        if (collectedEvents.length == eventsTypes.length) {
+          break;
+        }
       }
     }
-    return undefined as never; // unreachable. Just for compiler
+    return collectedEvents as EventsByEventsTypes<EventsTypes>;
   };
 
   afterEach(async () => {
@@ -133,7 +174,7 @@ describe("liquidationBot", () => {
     mockLiquidate.mockResolvedValueOnce(mockLiquidationResult);
 
     start();
-    const { trader } = await onceBotEvent("traderLiquidated");
+    const [{ trader }] = await onceBotEvents(["traderLiquidated"]);
 
     expect(trader).toEqual("trader1");
   });
@@ -147,8 +188,7 @@ describe("liquidationBot", () => {
 
     start();
     collectBotEvents("traderLiquidated", "error");
-    await onceBotEvent("tradersChecked");
-    await onceBotEvent("tradersFetched");
+    await onceBotEvents(["tradersChecked", "tradersChecked"]);
 
     expect(botEvents).toBeEmpty();
   });
@@ -161,8 +201,7 @@ describe("liquidationBot", () => {
     mockIsLiquidatable.mockResolvedValue([false]);
 
     start();
-    await onceBotEvent("tradersChecked");
-    await onceBotEvent("tradersFetched");
+    await onceBotEvents(["tradersChecked", "tradersFetched"]);
 
     closePositions(mockChangePositionEvents, ["trader1"]);
     mockIsLiquidatable.mockResolvedValue([true]);
@@ -184,7 +223,7 @@ describe("liquidationBot", () => {
     mockLiquidate.mockResolvedValueOnce(mockLiquidationResult);
 
     start();
-    const { trader } = await onceBotEvent("traderLiquidated");
+    const [{ trader }] = await onceBotEvents(["traderLiquidated"]);
 
     expect(trader).toEqual("trader2");
   });
@@ -199,7 +238,7 @@ describe("liquidationBot", () => {
 
     start();
     collectBotEvents("tradersChecked", "traderLiquidated", "error");
-    await onceBotEvent("traderLiquidated");
+    await onceBotEvents(["traderLiquidated"]);
 
     expect(botEvents).toEqual([
       expect.objectContaining({ type: "tradersChecked" }),
@@ -224,9 +263,7 @@ describe("liquidationBot", () => {
 
     start();
     collectBotEvents("tradersChecked", "traderLiquidated", "error");
-    await onceBotEvent("tradersChecked");
-    await onceBotEvent("tradersChecked");
-    await onceBotEvent("tradersChecked");
+    await onceBotEvents(["tradersChecked", "tradersChecked", "tradersChecked"]);
 
     expect(botEvents).toEqual([
       expect.objectContaining({ type: "tradersChecked" }),
@@ -253,8 +290,10 @@ describe("liquidationBot", () => {
 
     start();
     collectBotEvents("tradersChecked", "traderLiquidated", "error");
-    await onceBotEvent("error"); // mock liquidate error
-    await onceBotEvent("traderLiquidated");
+    await onceBotEvents([
+      "error", // mock liquidate error
+      "traderLiquidated",
+    ]);
 
     expect(botEvents).toEqual([
       expect.objectContaining({ type: "tradersChecked" }),
@@ -282,8 +321,10 @@ describe("liquidationBot", () => {
 
     start();
     collectBotEvents("traderLiquidated", "error");
-    await onceBotEvent("error"); // mock liquidate error
-    await onceBotEvent("tradersChecked");
+    await onceBotEvents([
+      "error", // mock liquidate error
+      "tradersChecked",
+    ]);
 
     expect(botEvents).toEqual([
       { type: "error", error: expect.any(LiquidationError) },
@@ -306,9 +347,11 @@ describe("liquidationBot", () => {
 
     start();
     collectBotEvents("traderLiquidated", "error");
-    await onceBotEvent("error"); // mock liquidate error 1
-    await onceBotEvent("error"); // mock liquidate error 2
-    await onceBotEvent("tradersChecked");
+    await onceBotEvents([
+      "error", // mock liquidate error 1
+      "error", // mock liquidate error 2
+      "tradersChecked",
+    ]);
 
     expect(botEvents).toEqual([
       { type: "error", error: expect.any(LiquidationError) },
@@ -317,31 +360,41 @@ describe("liquidationBot", () => {
   });
 
   it("should determine liquidatable traders when number of active traders exceeds the chunk size of liquidation bot api", async () => {
-    const activeTraders = Array.from({ length: 5_000 }, (_, i) => `trader${i}`);
     const {
       mockChangePositionEvents,
       mockLiquidate,
       mockIsLiquidatable,
       start,
+      consts,
     } = setupMocks(liquidationBot);
 
+    consts.maxTradersPerLiquidationCheck = 100;
+    const activeTraders = Array.from({ length: 500 }, (_, i) => `trader${i}`);
     openPositions(mockChangePositionEvents, activeTraders);
     mockIsLiquidatable.mockResolvedValue([false, true]);
     const mockLiquidationResult = Symbol("mockLiquidationResult");
     mockLiquidate.mockResolvedValueOnce(mockLiquidationResult);
 
     start();
-    const { trader: trader1 } = await onceBotEvent("traderLiquidated");
-    const { trader: trader2 } = await onceBotEvent("traderLiquidated");
-    const { trader: trader3 } = await onceBotEvent("traderLiquidated");
-    const { trader: trader4 } = await onceBotEvent("traderLiquidated");
-    const { trader: trader5 } = await onceBotEvent("traderLiquidated");
+    const [
+      { trader: trader1 },
+      { trader: trader2 },
+      { trader: trader3 },
+      { trader: trader4 },
+      { trader: trader5 },
+    ] = await onceBotEvents([
+      "traderLiquidated",
+      "traderLiquidated",
+      "traderLiquidated",
+      "traderLiquidated",
+      "traderLiquidated",
+    ]);
 
     expect(trader1).toEqual("trader1");
-    expect(trader2).toEqual("trader1001");
-    expect(trader3).toEqual("trader2001");
-    expect(trader4).toEqual("trader3001");
-    expect(trader5).toEqual("trader4001");
+    expect(trader2).toEqual("trader101");
+    expect(trader3).toEqual("trader201");
+    expect(trader4).toEqual("trader301");
+    expect(trader5).toEqual("trader401");
   });
 });
 
