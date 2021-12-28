@@ -127,15 +127,18 @@ yarn start liquidationBot --network mainnet_arbitrum \
 
 #### Run the liquidation bot under PM2 process manager
 
-It would restart the bot in case of crashed, provides a basic dashboard with
+Note: this may not work on Windows machine because of pm2 Windows issues
+
+It would restart the bot in case of crashes, provides a basic dashboard with
 metrics, save logs into files and ensure that bot will not stop after you will
 close the terminal
 
 Unfortunately, passing parameters to the commands below like it has been done
-in the command above will not work. The easiest way would be to add `NETWORK`
-and `EXCHANGE_ADDRESS` to your `.env` file like it explained in
-[Additional parameters](#additional-parameters) section above or to add them to
-`pm2.config.js` file to `env` field e.g. replacing
+in the command above will not work. The easiest way would be to add
+`ACCOUNT_NUMBER`, `NETWORK`, `${NETWORK}_EXCHANGE`, `${NETWORK}_MNEMONIC`,
+`${NETWORK}_CHAINID`, and `${NETWORK}_RPC_URL` to your `.env` file like it
+explained in [Additional parameters](#additional-parameters) section above or
+to add them to `pm2.config.js` file to `env` field e.g. replacing
 
 ```javascript
 env: {
@@ -152,8 +155,12 @@ env: {
   TS_NODE_FILES: true,
   TS_NODE_TRANSPILE_ONLY: true,
   REPORTING: "pm2",
-  NETWORK "mainnet_arbitrum",
-  EXCHANGE_ADDRESS" "0x1B5A08020E94066a3fB91Aff8B395De2d9cfaDd2"
+  ACCOUNT_NUMBER: 0,
+  NETWORK: "MAINNET_ARBITRUM",
+  MAINNET_ARBITRUM_MNEMONIC: "<your secret mnemonic phrase>",
+  MAINNET_ARBITRUM_CHAINID: 42161,
+  MAINNET_ARBITRUM_RPC_URL: "<your Infura or Alchemy JSON-RPC endpoint URL>",
+  MAINNET_ARBITRUM_EXCHANGE: "0x1B5A08020E94066a3fB91Aff8B395De2d9cfaDd2",
 },
 ```
 
