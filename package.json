@@ -5,6 +5,7 @@
   "description": "",
   "scripts": {
     "test": "DOTENV_CONFIG_PATH=.env.test jest --detectOpenHandles",
+    "test:windows": "set DOTENV_CONFIG_PATH=.env.test && jest --detectOpenHandles",
     "start": "npx ts-node src/index.ts",
     "liquidationBot:pm2:start": "pm2 reload pm2.config.js",
     "liquidationBot:pm2:stop": "pm2 stop pm2.config.js",
