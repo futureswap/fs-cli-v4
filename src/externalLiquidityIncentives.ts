@@ -100,12 +100,16 @@ export const cli = (
         rewardsTokenArgv(
           scriptShaOption(
             externalLiquidityIncentivesArgv(
-              uniswap.reportCommandOptions(withSignerArgv(yargs))
+              uniswap.reportCommandOptions(
+                withSignerArgv(
+                  uniswap.networkAndPairArgv(withNetworkArgv, yargs)
+                )
+              )
             )
           )
         ),
       async (argv) => {
-        const { network } = getNetwork(argv);
+        const { network, pair } = uniswap.getNetworkAndPair(getNetwork, argv);
         const {
           priceStore,
           liquidityBalanceStore,
@@ -120,7 +124,7 @@ export const cli = (
         const incentivesContract = getExternalLiquidityIncentives(signer, argv);
         const scriptSha = getScriptSha(argv);
 
-        const config = uniswap.configForNetwork(network);
+        const config = uniswap.configForNetworkAndPair(network, pair);
 
         const distribution = await uniswap.getIncentiveBalances(
           config,
