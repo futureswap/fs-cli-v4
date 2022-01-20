@@ -460,7 +460,7 @@ const checkTimeRanges = (
   }
 };
 
-export interface IncetivesDistributionReportAsJson {
+export interface IncentivesDistributionReportAsJson {
   from: Date;
   to: Date;
   dustLevel: number;
@@ -494,7 +494,7 @@ export const printIncentivesDistributionAsJson = (
     .filter((provider) => providers[provider].incentives > incentivesDustLevel)
     .map((provider) => [provider, providers[provider].incentives]);
 
-  const asJson: IncetivesDistributionReportAsJson = {
+  const asJson: IncentivesDistributionReportAsJson = {
     from,
     to,
     dustLevel: incentivesDustLevel,
