@@ -224,6 +224,8 @@ export const cli = (
           )
         ).toBigInt();
 
+        describeDistribution(distributionReport);
+
         if (
           !(await hasEnoughAllowance(
             signer,
@@ -413,6 +415,12 @@ const hasEnoughAllowance = async (
   );
 
   console.log(
+    `Total tokens to be distributed: ${formatUnits(
+      requiredAllowance,
+      rewardsTokenDecimals
+    )}`
+  );
+  console.log(
     `Incentives contract allowance from the owner: ${formatUnits(
       allowance,
       rewardsTokenDecimals
@@ -421,12 +429,6 @@ const hasEnoughAllowance = async (
 
   if (allowance.toBigInt() < requiredAllowance) {
     console.log("ERROR: Incentives contract allowance is too low.");
-    console.log(
-      `       Required allowance: ${formatUnits(
-        requiredAllowance,
-        rewardsTokenDecimals
-      )}`
-    );
     return false;
   }
 
@@ -609,6 +611,28 @@ const removeAccountant = async (
   await tx.wait();
 };
 
+const describeDistribution = (distribution: {
+  from: Date;
+  to: Date;
+  incentivesTotal: number;
+  noLiquidityIncentives: number;
+}) => {
+  const { from, to, incentivesTotal, noLiquidityIncentives } = distribution;
+
+  const numberFormat = new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 10,
+  });
+  const formatter = (value: number) => numberFormat.format(value);
+
+  console.log(`Incentives interval start time: ${from}`);
+  console.log(`Incentives interval end time  : ${to}`);
+  console.log(`Total incentives: ${formatter(incentivesTotal)}`);
+  console.log(
+    `Not distrubted due to no liquidity: ${formatter(noLiquidityIncentives)}`
+  );
+};
+
 const addIncentives = async (
   signer: Signer,
   scriptSha: string,
@@ -649,17 +673,9 @@ const addIncentives = async (
    */
   const maxAddressesPerTransaction = 1000;
 
-  const { from, to, incentivesTotal, providers } = distribution;
+  const { from, to, providers } = distribution;
 
-  const numberFormat = new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 10,
-  });
-  const formatter = (value: number) => numberFormat.format(value);
-
-  console.log(`Incentives interval start time: ${from}`);
-  console.log(`Incentives interval end time  : ${to}`);
-  console.log(`Total incentives: ${formatter(incentivesTotal)}`);
+  describeDistribution(distribution);
 
   const rewardsTokenDecimals = await rewardsToken.erc20.decimals();
   const toIncentiveTokens = (v: number): BigNumber =>
