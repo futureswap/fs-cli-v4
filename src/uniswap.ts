@@ -483,7 +483,7 @@ const incentivesDistributionReport = async (
     uniswapPoolAddress
   );
 
-  const distributions = incentivesDistribution(
+  const distribution = incentivesDistribution(
     priceStore,
     balanceStore,
     rangeStart,
@@ -504,11 +504,11 @@ const incentivesDistributionReport = async (
 
   switch (format) {
     case ReportFormat.Text:
-      printIncentivesDistribution(out, distributions, dustLevel);
+      printIncentivesDistribution(out, distribution, dustLevel);
       break;
 
     case ReportFormat.Json:
-      printIncentivesDistributionAsJson(out, distributions, dustLevel);
+      printIncentivesDistributionAsJson(out, distribution, dustLevel);
       break;
 
     case ReportFormat.Csv:
