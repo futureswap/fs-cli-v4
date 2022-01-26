@@ -8,10 +8,13 @@ import type { FileHandle } from "fs/promises";
 import { open } from "fs/promises";
 
 import {
-  WithProviderArgs,
   GetProviderArgv,
   GetNetworkArgv,
   WithNetworkArgs,
+  withNetworkArgv,
+  getNetwork,
+  withProviderArgv,
+  getProvider,
 } from "@config/common";
 import { getEnumArg } from "@config/args";
 
@@ -105,16 +108,7 @@ const CONFIGURATIONS: {
   },
 };
 
-export const cli = (
-  withNetworkArgv: <T>(yargs: Argv<T>) => Argv<WithNetworkArgs<T>>,
-  withProviderArgv: <T>(yargs: Argv<T>) => Argv<WithProviderArgs<T>>,
-  yargs: Argv,
-  getNetwork: <T>(argv: GetNetworkArgv<T>) => { network: string },
-  getProvider: <T>(argv: GetProviderArgv<T>) => {
-    network: string;
-    provider: Provider;
-  }
-): Argv => {
+export const cli = (yargs: Argv): Argv => {
   return yargs
     .command(
       "update-prices",
