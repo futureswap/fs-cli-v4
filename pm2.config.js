@@ -4,7 +4,7 @@ module.exports = {
   apps: [
     {
       name: "Liquidation Bot",
-      script: "./src/index.ts",
+      script: path.resolve("./src/index.ts"),
       args: "liquidationBot",
       interpreter: path.resolve("./node_modules/.bin/ts-node"),
       interpreter_args: `--project=${path.resolve("./tsconfig.json")}`,

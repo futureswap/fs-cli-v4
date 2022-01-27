@@ -1,7 +1,7 @@
 import type { Trader } from "@liquidationBot/types";
+import type { LiquidationBotApi } from "@generated/LiquidationBotApi";
 import { chunk } from "lodash";
 import { CheckError } from "@liquidationBot/errors";
-import { LiquidationBotApi } from "@generated/LiquidationBotApi";
 
 export type LiquidatableTradersCheckResult = Trader[] | CheckError;
 
@@ -21,10 +21,8 @@ export const constructFilterLiquidatableTraders: ConstructFilter = (
   chunkSize: number
 ) =>
   async function* (traders: Trader[]) {
-    for (const [chunkIndex, chunkOfTraders] of chunk(
-      traders,
-      chunkSize
-    ).entries()) {
+    const chunksOfTraders = chunk(traders, chunkSize);
+    for (const [chunkIndex, chunkOfTraders] of chunksOfTraders.entries()) {
       try {
         const areLiquidatable =
           await liquidationBotApi.callStatic.isLiquidatable(

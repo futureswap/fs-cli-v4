@@ -32,10 +32,10 @@ export type LiquidationBot = Reportable & {
     liquidationBotApi: LiquidationBotApi,
     exchangeLaunchBlock: number,
     maxBlocksPerJsonRpcQuery: number,
-    maxTradersPerLiquidationCheck: number,
     fetcherRetryIntervalSec: number,
     checkerRetryIntervalSec: number,
-    liquidatorRetryIntervalSec: number
+    liquidatorRetryIntervalSec: number,
+    maxTradersPerLiquidationCheck: number,
   ) => Promise<void>;
   join: () => Promise<void>;
   stop: () => Promise<void>;
