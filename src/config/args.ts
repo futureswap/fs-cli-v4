@@ -8,7 +8,7 @@ export function getStringArg<
   cliArgName: CliArgName,
   envPropName: string,
   argv: Arguments<
-    Omit<OtherArguments, CliArgName> & Record<CliArgName, string | undefined>
+    Omit<OtherArguments, CliArgName> & Partial<Record<CliArgName, string>>
   >,
   opts: Opts = { isOptional: false } as Opts
 ):
@@ -73,7 +73,7 @@ export function getNumberArg<
   cliArgName: CliArgName,
   envPropName: string,
   argv: Arguments<
-    Omit<OtherArguments, CliArgName> & Record<CliArgName, number | undefined>
+    Omit<OtherArguments, CliArgName> & Partial<Record<CliArgName, number>>
   >,
   opts: Opts = { isInt: false, isPositive: false, isOptional: false } as Opts
 ):
@@ -147,8 +147,7 @@ export function getEnumArg<
   envPropName: string,
   allowedValues: AllowedValue[],
   argv: Arguments<
-    Omit<OtherArguments, CliArgName> &
-      Record<CliArgName, AllowedValue | undefined>
+    Omit<OtherArguments, CliArgName> & Partial<Record<CliArgName, AllowedValue>>
   >,
   opts: Opts = { isOptional: false } as Opts
 ): AllowedValue | (Opts extends { isOptional: true } ? undefined : never) {

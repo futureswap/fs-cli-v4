@@ -98,7 +98,7 @@ export const reportEvent: ReportEvent = async (event) => {
 };
 
 // e.g. 30s, 1m 30s, 1h, 1h 59m, 17d 15h
-function getDurationStr(from: number | undefined, to = Date.now()) {
+function getDurationStr(from?: number, to = Date.now()) {
   if (from === undefined) {
     return "-";
   }

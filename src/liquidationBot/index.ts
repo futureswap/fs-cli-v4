@@ -16,15 +16,15 @@ import * as reporting from "./reporting";
 import { IExchangeEvents } from "@generated/IExchangeEvents";
 
 type LiquidationBotKeys<T = {}> = T & {
-  "liquidation-bot": string | undefined;
-  "exchange-launch-block": number | undefined;
-  "max-blocks-per-json-rpc-query": number | undefined;
-  "refetch-interval": number | undefined;
-  "recheck-interval": number | undefined;
-  "liquidation-retry-interval": number | undefined;
-  "liquidation-delay": number | undefined;
-  "max-traders-per-liquidation-check": number | undefined;
-  reporting: string | undefined;
+  "liquidation-bot"?: string;
+  "exchange-launch-block"?: number;
+  "max-blocks-per-json-rpc-query"?: number;
+  "refetch-interval"?: number;
+  "recheck-interval"?: number;
+  "liquidation-retry-interval"?: number;
+  "liquidation-delay"?: number;
+  "max-traders-per-liquidation-check"?: number;
+  reporting?: string;
 };
 
 export type LiquidationBotArgs<T = {}> = WithSignerArgs<
