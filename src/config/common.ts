@@ -9,10 +9,12 @@ import { JsonRpcProvider, Provider } from "@ethersproject/providers";
 import { Wallet } from "@ethersproject/wallet";
 import { IExchangeEvents__factory } from "@generated/factories/IExchangeEvents__factory";
 import { IExchange__factory } from "@generated/factories/IExchange__factory";
+import { TradeRouter__factory } from "@generated/factories/TradeRouter__factory";
 import { IExchange } from "@generated/IExchange";
 import { IExchangeEvents } from "@generated/IExchangeEvents";
+import { TradeRouter } from "@generated/TradeRouter";
 import { Arguments, Argv } from "yargs";
-import { getNumberArg, getStringArg } from "./args";
+import { getEnumArg, getNumberArg, getStringArg } from "./args";
 
 export function checkDefined<T>(
   val: T | null | undefined,
@@ -23,6 +25,9 @@ export function checkDefined<T>(
   }
   return val;
 }
+
+const networksAvailable = ["RINKEBY_ARBITRUM", "MAINNET_ARBITRUM"] as const;
+export type Network = typeof networksAvailable[number];
 
 export type WithNetworkArgs<T = {}> = T & { network: string | undefined };
 export const withNetworkArgv = <T = {}>(
@@ -42,9 +47,14 @@ export type GetNetworkArgv<T> = Arguments<WithNetworkArgs<T>>;
 export const getNetwork = <T = {}>(
   argv: GetNetworkArgv<T>
 ): {
-  network: string;
+  network: Network;
 } => {
-  const network = getStringArg("network", "NETWORK", argv).toUpperCase();
+  const network = getEnumArg(
+    "network",
+    "NETWORK",
+    ["RINKEBY_ARBITRUM", "MAINNET_ARBITRUM"],
+    argv
+  ).toUpperCase() as Network;
   return { network };
 };
 
@@ -55,7 +65,7 @@ export type GetProviderArgv<T> = Arguments<WithProviderArgs<T>>;
 export const getProvider = <T = {}>(
   argv: GetProviderArgv<T>
 ): {
-  network: string;
+  network: Network;
   provider: Provider;
 } => {
   const { network } = getNetwork(argv);
@@ -104,7 +114,7 @@ export type GetSignerArgv<T> = Arguments<WithSignerArgs<T>>;
 export const getSigner = <T = {}>(
   argv: GetSignerArgv<T>
 ): {
-  network: string;
+  network: Network;
   signer: Signer;
 } => {
   const { network, provider } = getProvider(argv);
@@ -143,7 +153,7 @@ export const getSigner = <T = {}>(
   return { network, signer };
 };
 
-export type ExchangeArgs<T = {}> = WithProviderArgs<
+export type ExchangeArgs<T = {}> = WithSignerArgs<
   T & { exchange: string | undefined }
 >;
 export const exchangeWithProviderArgv = <T = {}>(
@@ -153,7 +163,22 @@ export const exchangeWithProviderArgv = <T = {}>(
     describe:
       "Address of the exchange to interact with.\n" +
       ".env property: <network>_EXCHANGE\n" +
-      "Required",
+      "Required unless deployment-version is 4.1. Ignored othervice",
+    type: "string",
+  });
+};
+
+export type TradeRouterArgs<T = {}> = WithSignerArgs<
+  T & { "trader-router": string | undefined }
+>;
+export const traderRouterWithProviderArgv = <T = {}>(
+  yargs: Argv<T>
+): Argv<TradeRouterArgs<T>> => {
+  return withSignerArgv(yargs).option("trader-router", {
+    describe:
+      "Address of the exchange to interact with.\n" +
+      ".env property: <network>_EXCHANGE\n" +
+      "Required if deployment-version is 4.1. Ignored othervice",
     type: "string",
   });
 };
@@ -164,7 +189,7 @@ export type GetExchangeWithSignerArgv<T> = Arguments<
 export const getExchangeWithSigner = <T = {}>(
   argv: GetExchangeWithSignerArgv<T>
 ): {
-  network: string;
+  network: Network;
   signer: Signer;
   exchangeAddress: string;
   exchange: IExchange;
@@ -180,11 +205,36 @@ export const getExchangeWithSigner = <T = {}>(
   return { network, signer, exchangeAddress, exchange, exchangeEvents };
 };
 
+export type GetTradeRouterWithSignerArgv<T> = Arguments<
+  WithSignerArgs<TradeRouterArgs<T>>
+>;
+export const getTradeRouterWithSigner = <T = {}>(
+  argv: GetTradeRouterWithSignerArgv<T>
+): {
+  tradeRouter: TradeRouter;
+  tradeRouterEvents: IExchangeEvents;
+  tradeRouterAddress: string;
+  signer: Signer;
+} => {
+  const { network, signer } = getSigner(argv);
+  const tradeRouterAddress = getStringArg(
+    "trader-router",
+    `${network}_TRADE_ROUTER`,
+    argv
+  );
+  const tradeRouter = TradeRouter__factory.connect(tradeRouterAddress, signer);
+  const tradeRouterEvents = IExchangeEvents__factory.connect(
+    tradeRouterAddress,
+    signer
+  );
+  return { signer, tradeRouter, tradeRouterEvents, tradeRouterAddress };
+};
+
 export type GetExchangeWithProviderArgv<T> = Arguments<ExchangeArgs<T>>;
 export const getExchangeWithProvider = <T = {}>(
   argv: GetExchangeWithProviderArgv<T>
 ): {
-  network: string;
+  network: Network;
   provider: Provider;
   exchangeAddress: string;
   exchange: IExchange;
