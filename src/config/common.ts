@@ -28,7 +28,12 @@ export function checkDefined<T>(
   return val;
 }
 
-const networksAvailable = ["RINKEBY_ARBITRUM", "MAINNET_ARBITRUM"] as const;
+const networksAvailable = [
+  "MAINNET_ARBITRUM",
+  "MAINNET_AVALANCHE",
+  "RINKEBY_ARBITRUM",
+  "RINKEBY_AVALANCHE",
+] as const;
 export type Network = typeof networksAvailable[number];
 
 export type WithNetworkArgs<T = {}> = T & { network: string | undefined };
