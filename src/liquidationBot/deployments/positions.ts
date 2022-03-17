@@ -87,6 +87,12 @@ export class Positions {
     );
   }
 
+  public historyBlocksLeft(): number {
+    return this.firstProcessedBlock === undefined
+      ? 0
+      : this.firstProcessedBlock - this.exchangeLaunchBlock;
+  }
+
   /**
    * Fetches up to `blocks` blocks starting form the very first of the already processed blocks and
    * into the past.  But stops if we have already reached the `exchangeLaunchBlock` block.  This
