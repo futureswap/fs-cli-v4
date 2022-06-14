@@ -10,11 +10,18 @@ export async function runReporter(
     for await (const event of reportable.getEventsIterator()) {
       await reporter.reportEvent(event);
     }
-  } catch (error) {
-    // @ts-ignore - cause is a new feature that would be typed in TS 4.5 https://github.com/microsoft/TypeScript/pull/46291
-    const reporterCrashError = Error("Reporter will be restarted after crash", {
-      cause: error,
-    });
+  } catch (error: unknown) {
+    let reporterCrashError;
+    if (error instanceof Error) {
+      reporterCrashError = Error("Reporter will be restarted after crash", {
+        cause: error,
+      });
+    } else {
+      reporterCrashError = Error(
+        "Reporter will be restarted after crash\n"
+        + `Nested error: ${error}`
+      );
+    }
     await reporter.reportEvent({ type: "error", error: reporterCrashError });
 
     return runReporter(reporter, reportable);
