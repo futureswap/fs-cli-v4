@@ -62,12 +62,12 @@ const DEFAULTS: {
     },
     maxBlocksPerJsonRpcQuery: 50_000,
     historyFetchIntervalSec: 1,
-    maxTradersPerLiquidationCheck: 300,
+    maxTradersPerLiquidationCheck: 100,
   },
   MAINNET_AVALANCHE: {
     maxBlocksPerJsonRpcQuery: 2_000,
     historyFetchIntervalSec: 5,
-    maxTradersPerLiquidationCheck: 300,
+    maxTradersPerLiquidationCheck: 100,
   },
   TESTNET_ARBITRUM: {
     v4: {
@@ -81,7 +81,7 @@ const DEFAULTS: {
     },
     maxBlocksPerJsonRpcQuery: 50_000,
     historyFetchIntervalSec: 1,
-    maxTradersPerLiquidationCheck: 300,
+    maxTradersPerLiquidationCheck: 100,
   },
   TESTNET_AVALANCHE: {
     v4_1: {
@@ -97,7 +97,7 @@ const DEFAULTS: {
     },
     maxBlocksPerJsonRpcQuery: 2_000,
     historyFetchIntervalSec: 5,
-    maxTradersPerLiquidationCheck: 300,
+    maxTradersPerLiquidationCheck: 100,
   },
 };
 
