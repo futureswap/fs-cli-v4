@@ -29,8 +29,10 @@ export function checkDefined<T>(
 }
 
 const networksAvailable = [
+  "MAINNET_ETHEREUM",
   "MAINNET_ARBITRUM",
   "MAINNET_AVALANCHE",
+  "TESTNET_ETHEREUM",
   "TESTNET_ARBITRUM",
   "TESTNET_AVALANCHE",
 ] as const;
