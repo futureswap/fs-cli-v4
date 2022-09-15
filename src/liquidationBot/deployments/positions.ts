@@ -8,7 +8,7 @@
  * Both v4 and v4.1 use this code to fetch positions.
  */
 
-import { tryNTimes } from "utils";
+import { tryNTimes } from "../../utils";
 import { Trader } from "../types";
 
 export enum PositionState {
