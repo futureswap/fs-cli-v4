@@ -108,6 +108,10 @@ const CONFIGURATIONS: {
   MAINNET_AVALANCHE: {},
 
   TESTNET_AVALANCHE: {},
+
+  MAINNET_ETHEREUM: {},
+
+  TESTNET_ETHEREUM: {},
 };
 
 export const cli = (yargs: Argv): Argv => {
