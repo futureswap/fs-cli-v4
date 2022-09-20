@@ -34,7 +34,7 @@ export function start(
   retryIntervalSec: number,
   delaySec: number
 ): TradersLiquidatorProcessor {
-  const liquidatableTraders = new Set<Trader>();
+  let liquidatableTraders = new Set<Trader>();
   const tradersEvents = new EventEmitter();
 
   const saveLiquidatableTraders: WritableOptions["write"] = (
@@ -59,6 +59,13 @@ export function start(
       }
       if (delaySec) {
         await setTimeout(delaySec * 1_000);
+
+        const { liquidatableTraders: liquidatable, liquidatableChecksErrors } =
+          await deployment.filterLiquidatableTraders([...liquidatableTraders]);
+        if (liquidatableChecksErrors.length) yield { liquidatableChecksErrors };
+
+        liquidatableTraders = new Set(liquidatable);
+        if (!liquidatableTraders.size) continue;
       }
       const { liquidationsResults, liquidationsErrors } =
         await deployment.liquidate(liquidatableTraders);

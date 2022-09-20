@@ -35,6 +35,7 @@ const setupMocks = (
   mockLiquidate: jest.MockedFunction<() => Promise<Symbol>>;
   mockIsLiquidatable: jest.Mock;
   start: () => void;
+  consts: typeof consts;
 } => {
   // TODO `as any as Type` conversion is not safe.  It would be nice to replace it with a more
   // comprehensive mock.  One that would through a meaningful error if an unexpected property is
@@ -57,6 +58,17 @@ const setupMocks = (
     callStatic: { isLiquidatable: mockIsLiquidatable },
   } as any as LiquidationBotApiV2;
 
+  const consts = {
+    exchangeLaunchBlock: 0,
+    maxBlocksPerJsonRpcQuery: 100,
+    maxTradersPerLiquidationCheck: 1000,
+    historyFetchIntervalSec: 0.01,
+    fetcherRetryIntervalSec: 0.01,
+    checkerRetryIntervalSec: 0.005,
+    liquidatorRetryIntervalSec: 0.001,
+    liquidatorDelaySec: 0,
+  };
+
   const mockProvider = {
     getBlockNumber: () => 10,
   } as any as Provider;
@@ -69,19 +81,33 @@ const setupMocks = (
     exchangeLedger: mockExchangeLedger,
     liquidationBotApi: mockLiquidationBotApi,
     tradeRouterAddress: "mockTradeRouter",
-    exchangeLaunchBlock: 0,
-    maxTradersPerLiquidationCheck: 1000,
-    maxBlocksPerJsonRpcQuery: 1000,
+    exchangeLaunchBlock: consts.exchangeLaunchBlock,
+    maxTradersPerLiquidationCheck: consts.maxTradersPerLiquidationCheck,
+    maxBlocksPerJsonRpcQuery: consts.maxBlocksPerJsonRpcQuery,
   });
 
   const start = () => {
     // NOTE Timeouts here need to be very low, as we need to wait for a timeout to expire when
     // are stopping our tests.  So the shorter the timeouts are, the less time our tests will waste
     // when stopping.
-    liquidationBot.start(deployment, mockProvider, 0.01, 0.01, 0.005, 0.001, 0);
+    liquidationBot.start(
+      deployment,
+      mockProvider,
+      consts.historyFetchIntervalSec,
+      consts.fetcherRetryIntervalSec,
+      consts.checkerRetryIntervalSec,
+      consts.liquidatorRetryIntervalSec,
+      consts.liquidatorDelaySec
+    );
   };
 
-  return { mockChangePositionEvents, mockLiquidate, mockIsLiquidatable, start };
+  return {
+    mockChangePositionEvents,
+    mockLiquidate,
+    mockIsLiquidatable,
+    start,
+    consts,
+  };
 };
 
 describe("liquidationBot", () => {
@@ -352,6 +378,32 @@ describe("liquidationBot", () => {
     expect(trader4).toEqual("trader3001");
     expect(trader5).toEqual("trader4001");
   });
+
+  it(
+    "should recheck traders liquidatability before attempting to liquidate " +
+      "when liquidatorDelaySec is not zero",
+    async () => {
+      const {
+        mockChangePositionEvents,
+        mockLiquidate,
+        mockIsLiquidatable,
+        start,
+        consts,
+      } = setupMocks(liquidationBot);
+
+      consts.liquidatorDelaySec = 0.1;
+      openPositions(mockChangePositionEvents, ["trader1", "trader2"]);
+      mockIsLiquidatable.mockResolvedValueOnce([true, true]);
+      mockIsLiquidatable.mockResolvedValue([false, true]);
+      const mockLiquidationResult = Symbol("mockLiquidationResult");
+      mockLiquidate.mockResolvedValueOnce(mockLiquidationResult);
+
+      start();
+      const { trader } = await onceBotEvent("traderLiquidated");
+
+      expect(trader).toEqual("trader2");
+    }
+  );
 });
 
 function openPositions(
